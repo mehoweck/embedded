@@ -1,39 +1,31 @@
+// WemosD1MiniISP
+// Copyright (c) 2023 Michal Pieprzyca
+// If you require a license, see
+// https://creativecommons.org/publicdomain/zero/1.0
+//
+// Based on:
 // ArduinoISP
 // Copyright (c) 2008-2011 Randall Bohn
-// If you require a license, see
-// https://opensource.org/licenses/bsd-license.php
+// This sketch turns the Wemos D1 Mini into a AVRISP using the following board pins:
 //
-// This sketch turns the Arduino into a AVRISP using the following Arduino pins:
+//     +-------------+-----------+
+//     | WemosD1mini |  AVR/SPI  |
+//     +=============+===========+
+//     |      D5     |  SCK      |
+//     +-------------+-----------+
+//     |      D6     |  MISO     |
+//     +-------------+-----------+
+//     |      D7     |  MOSI     |
+//     +-------------+-----------+
+//     |      D4     |  RESET    |
+//     +=============+===========+
+//     |     3.3V*   |  VCC      |
+//     +-------------+-----------+
+//     |      GND    |  GND      |
+//     +-------------+-----------+
 //
-// Pin 10 is used to reset the target microcontroller.
-//
-// By default, the hardware SPI pins MISO, MOSI and SCK are used to communicate
-// with the target. On all Arduinos, these pins can be found
-// on the ICSP/SPI header:
-//
-//               MISO °. . 5V (!) Avoid this pin on Due, Zero...
-//               SCK   . . MOSI
-//                     . . GND
-//
-// On some Arduinos (Uno,...), pins MOSI, MISO and SCK are the same pins as
-// digital pin 11, 12 and 13, respectively. That is why many tutorials instruct
-// you to hook up the target to these pins. If you find this wiring more
-// practical, have a define USE_OLD_STYLE_WIRING. This will work even when not
-// using an Uno. (On an Uno this is not needed).
-//
-// Alternatively you can use any other digital pin by configuring
-// software ('BitBanged') SPI and having appropriate defines for PIN_MOSI,
-// PIN_MISO and PIN_SCK.
-//
-// IMPORTANT: When using an Arduino that is not 5V tolerant (Due, Zero, ...) as
-// the programmer, make sure to not expose any of the programmer's pins to 5V.
-// A simple way to accomplish this is to power the complete system (programmer
-// and target) at 3V3.
-//
-// Put an LED (with resistor) on the following pins:
-// 9: Heartbeat   - shows the programmer is running
-// 8: Error       - Lights up if something goes wrong (use red if that makes sense)
-// 7: Programming - In communication with the target
+//     * Remember that ESP8266 operates on 3.3V! 
+//       If the target operates on 5V then you need a separate power supply and a logic state converter
 //
 
 #include "Arduino.h"
