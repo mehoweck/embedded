@@ -24,6 +24,17 @@
 //     |      GND    |  GND      |
 //     +-------------+-----------+
 //
+//     +-------------+--------------------+
+//     | WemosD1mini |  USBasp 10pin SPI  |
+//     +=============+====================+
+//                   |        .-----.
+//           (13) D7 | MOSI   | o o |  VCC
+//                 - |        | . . |
+//            (2) D4 | RESET    o . |
+//           (14) D5 | SCK    | o . |
+//           (12) D6 | MISO   | o o |  GND
+//                            '-----'
+//
 //     * Remember that ESP8266 operates on 3.3V! 
 //       If the target operates on 5V then you need a separate power supply and a logic state converter
 //
@@ -31,8 +42,6 @@
 #include "Arduino.h"
 #undef SERIAL
 
-
-#define PROG_FLICKER true
 
 // Configure SPI clock (in Hz).
 // E.g. for an ATtiny @ 128 kHz: the datasheet states that both the high and low
@@ -42,7 +51,8 @@
 //
 // A clock slow enough for an ATtiny85 @ 1 MHz, is a reasonable default:
 
-#define SPI_CLOCK (1000000 / 6)
+// #define SPI_CLOCK (1000000 / 6)
+#define SPI_CLOCK (128000 / 6)
 
 
 // Select hardware or software SPI, depending on SPI clock.
@@ -58,51 +68,11 @@
 #endif
 
 // Configure which pins to use:
+#define RESET D4  
 
-// The standard pin configuration.
-#ifndef ARDUINO_HOODLOADER2
-
-#define RESET 10  // Use pin 10 to reset the target rather than SS
-#define LED_HB 9
-#define LED_ERR 8
-#define LED_PMODE 7
-
-// Uncomment following line to use the old Uno style wiring
-// (using pin 11, 12 and 13 instead of the SPI header) on Leonardo, Due...
-
-// #define USE_OLD_STYLE_WIRING
-
-#ifdef USE_OLD_STYLE_WIRING
-
-#define PIN_MOSI 11
-#define PIN_MISO 12
-#define PIN_SCK 13
-
-#endif
-
-// HOODLOADER2 means running sketches on the ATmega16U2 serial converter chips
-// on Uno or Mega boards. We must use pins that are broken out:
-#else
-
-#define RESET 4
-#define LED_HB 7
-#define LED_ERR 6
-#define LED_PMODE 5
-
-#endif
-
-// By default, use hardware SPI pins:
-#ifndef PIN_MOSI
 #define PIN_MOSI MOSI
-#endif
-
-#ifndef PIN_MISO
 #define PIN_MISO MISO
-#endif
-
-#ifndef PIN_SCK
 #define PIN_SCK SCK
-#endif
 
 // Force bitbanged SPI if not using the hardware SPI pins:
 #if (PIN_MISO != MISO) || (PIN_MOSI != MOSI) || (PIN_SCK != SCK)
@@ -141,12 +111,12 @@
 #define SWMIN 18
 
 // STK Definitions
-#define STK_OK 0x10
-#define STK_FAILED 0x11
+#define STK_OK      0x10
+#define STK_FAILED  0x11
 #define STK_UNKNOWN 0x12
-#define STK_INSYNC 0x14
-#define STK_NOSYNC 0x15
-#define CRC_EOP 0x20  //ok it is a space...
+#define STK_INSYNC  0x14
+#define STK_NOSYNC  0x15
+#define CRC_EOP     0x20  //ok it is a space...
 
 void pulse(int pin, int times);
 
@@ -216,13 +186,6 @@ static BitBangedSPI SPI;
 
 void setup() {
   SERIAL.begin(BAUDRATE);
-
-  pinMode(LED_PMODE, OUTPUT);
-  pulse(LED_PMODE, 2);
-  pinMode(LED_ERR, OUTPUT);
-  pulse(LED_ERR, 2);
-  pinMode(LED_HB, OUTPUT);
-  pulse(LED_HB, 2);
 }
 
 int ISPError = 0;
@@ -267,7 +230,6 @@ void heartbeat() {
     hbdelta = -hbdelta;
   }
   hbval += hbdelta;
-  analogWrite(LED_HB, hbval);
 }
 
 static bool rst_active_high;
@@ -277,19 +239,6 @@ void reset_target(bool reset) {
 }
 
 void loop(void) {
-  // is pmode active?
-  if (pmode) {
-    digitalWrite(LED_PMODE, HIGH);
-  } else {
-    digitalWrite(LED_PMODE, LOW);
-  }
-  // is there an error?
-  if (ISPError) {
-    digitalWrite(LED_ERR, HIGH);
-  } else {
-    digitalWrite(LED_ERR, LOW);
-  }
-
   // light the heartbeat LED
   heartbeat();
   if (SERIAL.available()) {
@@ -316,12 +265,6 @@ void pulse(int pin, int times) {
     digitalWrite(pin, LOW);
     delay(PTIME);
   } while (times--);
-}
-
-void prog_lamp(int state) {
-  if (PROG_FLICKER) {
-    digitalWrite(LED_PMODE, state);
-  }
 }
 
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
@@ -453,14 +396,7 @@ void flash(uint8_t hilo, unsigned int addr, uint8_t data) {
                   data);
 }
 void commit(unsigned int addr) {
-  if (PROG_FLICKER) {
-    prog_lamp(LOW);
-  }
   spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0);
-  if (PROG_FLICKER) {
-    delay(PTIME);
-    prog_lamp(HIGH);
-  }
 }
 
 unsigned int current_page() {
@@ -530,13 +466,11 @@ uint8_t write_eeprom(unsigned int length) {
 uint8_t write_eeprom_chunk(unsigned int start, unsigned int length) {
   // this writes byte-by-byte, page writing may be faster (4 bytes at a time)
   fill(length);
-  prog_lamp(LOW);
   for (unsigned int x = 0; x < length; x++) {
     unsigned int addr = start + x;
     spi_transaction(0xC0, (addr >> 8) & 0xFF, addr & 0xFF, buff[x]);
     delay(45);
   }
-  prog_lamp(HIGH);
   return STK_OK;
 }
 
