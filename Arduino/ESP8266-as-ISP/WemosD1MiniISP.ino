@@ -51,34 +51,19 @@
 //
 // A clock slow enough for an ATtiny85 @ 1 MHz, is a reasonable default:
 
-// #define SPI_CLOCK (1000000 / 6)
-#define SPI_CLOCK (128000 / 6)
-
+#define SPI_CLOCK (1000000 / 6)
+//#define SPI_CLOCK (128000 / 6)
 
 // Select hardware or software SPI, depending on SPI clock.
 // Currently only for AVR, for other architectures (Due, Zero,...), hardware SPI
 // is probably too fast anyway.
-
-#if defined(ARDUINO_ARCH_AVR)
-
-#if SPI_CLOCK > (F_CPU / 128)
 #define USE_HARDWARE_SPI
-#endif
-
-#endif
 
 // Configure which pins to use:
 #define RESET D4  
-
 #define PIN_MOSI MOSI
 #define PIN_MISO MISO
 #define PIN_SCK SCK
-
-// Force bitbanged SPI if not using the hardware SPI pins:
-#if (PIN_MISO != MISO) || (PIN_MOSI != MOSI) || (PIN_SCK != SCK)
-#undef USE_HARDWARE_SPI
-#endif
-
 
 // Configure the serial port to use.
 //
@@ -91,7 +76,6 @@
 //
 // On the Due and Zero, 'Serial' can be used too, provided you disable autoreset.
 // To use 'Serial': #define SERIAL Serial
-
 #ifdef SERIAL_PORT_USBVIRTUAL
 #define SERIAL SERIAL_PORT_USBVIRTUAL
 #else
@@ -100,7 +84,6 @@
 
 
 // Configure the baud rate:
-
 #define BAUDRATE 19200
 // #define BAUDRATE	115200
 // #define BAUDRATE	1000000
